@@ -6,6 +6,11 @@ from flask import jsonify
 
 app = APIFlask(__name__, title='ExternalPython Descriptor Server API for vitrivr', version='1.0.0')
 
+
+MEGABYTE = (2 ** 10) ** 2
+app.config['MAX_CONTENT_LENGTH'] = None
+app.config['MAX_FORM_MEMORY_SIZE'] = 50 * MEGABYTE
+
 @app.route("/health", methods=["GET"])  # Add thisAdd commentMore actions
 def health():
     return jsonify(status="ok")
@@ -16,6 +21,7 @@ from descriptors.open_clip_lion_image import open_clip_lion_image
 from descriptors.dino_v2 import dino_v2
 from descriptors.ocr import ocr
 from descriptors.emotions import emotions
+from descriptors.yolo_world_image import yolo_world_image
 
 from descriptors.asr import asr_whisper
 
@@ -27,6 +33,7 @@ def register_modules():
     app.register_blueprint(ocr)
     app.register_blueprint(asr_whisper)
     app.register_blueprint(emotions)
+    app.register_blueprint(yolo_world_image)
 
 
 def entrypoint(host, port, args):
