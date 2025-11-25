@@ -13,7 +13,8 @@ cd ./vitrivr-python-descriptor-server
 
 The following command builds and runs the docker container. Further it installs all python dependencies.
 ```bash
-sudo docker run -p 3000:3000 $(sudo docker build -q .)
+docker pull netcscienceraphael/vitrivr-python-descriptor-server
+sudo docker run --rm -p 8888:8888 netcscienceraphael/vitrivr-python-descriptor-server:latest
 ```
 > [!NOTE]
 >  On first start the models will be downloaded and output is quite for some time
