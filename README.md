@@ -13,6 +13,7 @@ cd ./vitrivr-python-descriptor-server
 
 The following command builds and runs the docker container. Further it installs all python dependencies.
 ```bash
+docker pull netcscienceraphael/vitrivr-python-descriptor-server
 sudo docker run -p 3000:3000 $(sudo docker build -q .)
 ```
 > [!NOTE]
