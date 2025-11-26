@@ -8,6 +8,7 @@ from apiflask import APIBlueprint
 from flask import request
 import uuid
 
+from descriptors.image_cache.ImageCache import ImageCache
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 yolo_world_image = APIBlueprint('yolo_world_image', __name__)
@@ -21,7 +22,11 @@ except ImportError as e:
     print("Ultralytics is not installed. Install with: pip install ultralytics")
     raise
 
+
+
+
 classes_list = []
+
 with open("descriptors/yolo_world_objects_6k.txt", "r", encoding="utf-8") as f:
     classes_list = [line.strip() for line in f if line.strip()]
 
@@ -42,20 +47,48 @@ except Exception as e:
         print(f"[ERROR] Failed to load model '{model_name}': {e}")
 
 
-
+image_cache = ImageCache()
 
 @yolo_world_image.post("/extract/yolo_world_image")
 @yolo_world_image.doc(
     summary="Yolo world endpoint for feature extraction on image, where the image is transmitted in the body by a data URL")
 def yolo_image():
-
     data = request.form.get('data', '')
     header, encoded = data.split("base64,", 1)
     conf_level = float( request.form.get('confLevel', '0.25'))
     image_size = int( request.form.get('imageSize', 640))
-    persist= bool( request.form.get('persist', True))
+    persist= bool( request.form.get('persist', False))
+    do_cache = bool(request.form.get('cache', False))
+    image_id = str(request.form.get('image_id'))
     # Parse a comma seperated filter to a  list if provided to remove words from model
     filters = request.form.get('filters', None)
+
+    image = Image.open(BytesIO(base64.b64decode(encoded)))
+
+    if do_cache and image_id:
+        image_cache.put(image, key=image_id)
+
+    return yolo_image_inference(image, conf_level, image_size, filters, persist)
+
+
+@yolo_world_image.post("/extract/yolo_world_image_from_cache")
+@yolo_world_image.doc(
+    summary="Yolo world endpoint for feature extraction on image, where the image is transmitted in the body by a data URL")
+def yolo_image_from_cache():
+    image_id = str(request.form.get('image_id'))
+    conf_level = float(request.form.get('confLevel', '0.25'))
+    image_size = int(request.form.get('imageSize', 640))
+    persist = bool(request.form.get('persist', False))
+    # Parse a comma seperated filter to a  list if provided to remove words from model
+    filters = request.form.get('filters', None)
+
+    image = image_cache.get(image_id)
+
+    return yolo_image_inference(image, conf_level, image_size, filters, persist)
+
+
+def yolo_image_inference(image: Image.Image, conf_level: float, image_size: int, filters: str = None, persist: bool = True):
+
     filter_list = []
     if filters:
         filter_list = [f.strip() for f in filters.split(",") if f.strip()]
@@ -71,7 +104,7 @@ def yolo_image():
 
     try:
 
-        image = Image.open(BytesIO(base64.b64decode(encoded)))
+
 
         try:
             # Run prediction. Note: ultralytics returns a list of Results

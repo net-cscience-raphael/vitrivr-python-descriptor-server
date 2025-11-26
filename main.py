@@ -22,10 +22,12 @@ from descriptors.dino_v2 import dino_v2
 from descriptors.ocr import ocr
 from descriptors.emotions import emotions
 from descriptors.yolo_world_image import yolo_world_image
+from descriptors.image_cache_endpoint import image_cache_bp
 
 from descriptors.asr import asr_whisper
 
 # specify here all modules, that will be needed for feature extraction server
+
 def register_modules():
     app.register_blueprint(open_clip_lion_text)
     app.register_blueprint(open_clip_lion_image)
@@ -34,11 +36,11 @@ def register_modules():
     app.register_blueprint(asr_whisper)
     app.register_blueprint(emotions)
     app.register_blueprint(yolo_world_image)
+    app.register_blueprint(image_cache_bp)
 
 
 def entrypoint(host, port, args):
     app.run(host=host, port=port)
-
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--host', type=str, help='Host to connect to.', default='localhost')

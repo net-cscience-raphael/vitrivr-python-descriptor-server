@@ -8,6 +8,7 @@ from PIL import Image
 from apiflask import APIBlueprint
 from flask import request
 import gc
+from descriptors.image_cache.ImageCache import ImageCache
 
 #from main import device #FIXME cyclic dependency
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -18,7 +19,7 @@ model, _, preprocess = open_clip.create_model_and_transforms('xlm-roberta-base-V
                                                              pretrained='laion5b_s13b_b90k')
 model = model.to(device)
 tokenizer = open_clip.get_tokenizer('xlm-roberta-base-ViT-B-32')
-
+image_cache = ImageCache()
 
 @open_clip_lion_image.post("/extract/clip_image")
 @open_clip_lion_image.doc(
@@ -35,6 +36,24 @@ def clip_image():
 
     feature = "[]" if image is None else json.dumps(feature_image(image).tolist())
     return feature
+
+
+@open_clip_lion_image.post("/extract/clip_image_from_cache")
+@open_clip_lion_image.doc(
+    summary="CLIP endpoint for feature extraction on image, where the image is transmitted in the body by a data URL")
+def clip_image_from_cache():
+    image_id = str(request.form.get('image_id'))
+
+
+    try:
+        image =  image_cache.get(image_id)
+    except Exception as e:
+        print(f"Error decoding image: {e}")
+        return "[]"
+
+    feature = "[]" if image is None else json.dumps(feature_image(image).tolist())
+    return feature
+
 
 
 def feature_image(image):
