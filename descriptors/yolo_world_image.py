@@ -7,10 +7,13 @@ from PIL import Image, ImageDraw, ImageFont
 from apiflask import APIBlueprint
 from flask import request
 import uuid
+import logging
 
 from descriptors.image_cache.ImageCache import ImageCache
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+logging.info(f"Yolo is using device: {device}")
+
 yolo_world_image = APIBlueprint('yolo_world_image', __name__)
 
 model_name = "yolov8x-worldv2"
@@ -19,15 +22,13 @@ try:
     from ultralytics import YOLO
     from ultralytics import YOLOWorld
 except ImportError as e:
-    print("Ultralytics is not installed. Install with: pip install ultralytics")
+    logging.error("Ultralytics YOLO package is not installed. Please install it with 'pip install ultralytics'.")
     raise
-
-
 
 
 classes_list = []
 
-with open("descriptors/yolo_world_objects_6k.txt", "r", encoding="utf-8") as f:
+with open("descriptors/yolo_world_objects_2k.txt", "r", encoding="utf-8") as f:
     classes_list = [line.strip() for line in f if line.strip()]
 
 try:
@@ -40,11 +41,11 @@ except Exception as e:
             try:
                 model.set_classes(classes_list)
             except Exception as e:
-                print(f"[WARN] Failed to set classes on YOLO-World model: {e}")
+                logging.warn( f"Failed to set classes on YOLO-World model: {e}")
 
         model.save(f"./models_cache/updated_classes_{model_name}")
     except Exception as e:
-        print(f"[ERROR] Failed to load model '{model_name}': {e}")
+        logging.error( f" Failed to load model '{model_name}': {e}")
 
 
 image_cache = ImageCache()
@@ -53,6 +54,8 @@ image_cache = ImageCache()
 @yolo_world_image.doc(
     summary="Yolo world endpoint for feature extraction on image, where the image is transmitted in the body by a data URL")
 def yolo_image():
+    logging.info(f"Embedding image request received on YOLO-World endpoint with device {device}")
+
     data = request.form.get('data', '')
     header, encoded = data.split("base64,", 1)
     conf_level = float( request.form.get('confLevel', '0.25'))
@@ -92,10 +95,7 @@ def yolo_image_inference(image: Image.Image, conf_level: float, image_size: int,
     filter_list = []
     if filters:
         filter_list = [f.strip() for f in filters.split(",") if f.strip()]
-        try:
-            model.set_classes(filter_list, mode="remove")
-        except Exception as e:
-            print(f"[WARN] Failed to set filter classes on YOLO-World model: {e}")
+
 
     names = getattr(model, 'names', None)
     if names is None or (isinstance(names, (list, tuple)) and not names):
@@ -103,9 +103,6 @@ def yolo_image_inference(image: Image.Image, conf_level: float, image_size: int,
         names = classes_list if classes_list else {}
 
     try:
-
-
-
         try:
             # Run prediction. Note: ultralytics returns a list of Results
             results = model.predict(image, conf=conf_level, device=device, imgsz=image_size, verbose=False)
@@ -119,10 +116,10 @@ def yolo_image_inference(image: Image.Image, conf_level: float, image_size: int,
                 image.save(f"./tmp/{id}.png")
 
         except Exception as e:
-            print(f"[WARN] Inference failed for: {e}")
+            logging.warn( f"Inference failed for: {e}")
 
     except Exception as e:
-        print(f"Error decoding image: {e}")
+        logging.error( f"decoding image: {e}")
         return
     return build_detection_response(image,results,names)
 
