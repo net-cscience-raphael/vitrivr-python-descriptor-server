@@ -45,7 +45,7 @@ def entrypoint(host, port, args):
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--host', type=str, help='Host to connect to.', default='localhost')
 parser.add_argument('--port', type=int, help='Port to listen on.', default=8888)
-parser.add_argument('--device', type=str, help='Device to use for feature extraction.', default='cpu')
+parser.add_argument('--device', type=str, help='Device to use for feature extraction.', default='gpu')
 
 args = parser.parse_args()
 device = args.device
