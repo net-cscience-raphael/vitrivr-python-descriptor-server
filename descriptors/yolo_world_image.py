@@ -31,21 +31,18 @@ classes_list = []
 with open("descriptors/yolo_world_objects_2k.txt", "r", encoding="utf-8") as f:
     classes_list = [line.strip() for line in f if line.strip()]
 
+
 try:
-    model = YOLOWorld(f"./models_cache/updated_classes_{model_name}")
+    model = YOLOWorld(f"./models_cache/{model_name}")
+
+    if classes_list:
+        try:
+            model.set_classes(classes_list)
+        except Exception as e:
+            logging.warn( f"Failed to set classes on YOLO-World model: {e}")
+
 except Exception as e:
-    try:
-        model = YOLOWorld(f"./models_cache/{model_name}")
-
-        if classes_list:
-            try:
-                model.set_classes(classes_list)
-            except Exception as e:
-                logging.warn( f"Failed to set classes on YOLO-World model: {e}")
-
-        model.save(f"./models_cache/updated_classes_{model_name}")
-    except Exception as e:
-        logging.error( f" Failed to load model '{model_name}': {e}")
+    logging.error( f" Failed to load model '{model_name}': {e}")
 
 
 image_cache = ImageCache()
