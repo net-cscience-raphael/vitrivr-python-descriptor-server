@@ -83,6 +83,7 @@ def yolo_image_from_cache():
     filters = request.form.get('filters', None)
 
     image = image_cache.get(image_id)
+    image = image.copy()
 
     return yolo_image_inference(image, conf_level, image_size, filters, persist)
 

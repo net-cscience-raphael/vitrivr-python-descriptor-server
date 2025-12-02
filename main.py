@@ -1,10 +1,9 @@
 import argparse
-from importlib import reload
+import logging
 
 from apiflask import APIFlask
 from flask import jsonify
 
-import logging
 from util.CustomLogger import setup_logging
 
 app = APIFlask(__name__, title='ExternalPython Descriptor Server API for vitrivr', version='1.0.0')
@@ -21,13 +20,11 @@ def health():
 # import necessary modules
 from descriptors.open_clip_lion_text import open_clip_lion_text
 from descriptors.open_clip_lion_image import open_clip_lion_image
-from descriptors.dino_v2 import dino_v2
 from descriptors.ocr import ocr
-from descriptors.emotions import emotions
 from descriptors.yolo_world_image import yolo_world_image
 from descriptors.image_cache_endpoint import image_cache_bp
+from descriptors.yolo_world_image_semantic import yolo_world_image_semantic_bp
 
-from descriptors.asr import asr_whisper
 
 # specify here all modules, that will be needed for feature extraction server
 
@@ -39,6 +36,7 @@ def register_modules():
     #app.register_blueprint(asr_whisper)
     #app.register_blueprint(emotions)
     app.register_blueprint(yolo_world_image)
+    app.register_blueprint(yolo_world_image_semantic_bp)
     app.register_blueprint(image_cache_bp)
 
 
