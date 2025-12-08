@@ -48,7 +48,7 @@ def yolo_world_image_semantic():
     )
     X = torch.from_numpy(extract_features_from_response(resp).astype(np.float32))
     with torch.no_grad():
-        features = model(torch.unsqueeze(X.to(device),0)).cpu().numpy().flatten().tolist()
+        features = model(torch.unsqueeze(X.to(device),0)).sigmoid().cpu().numpy().flatten().tolist()
     return features
 
 
@@ -74,7 +74,7 @@ def yolo_world_image_semantic_from_cache():
     )
     X = torch.from_numpy(extract_features_from_response(resp).astype(np.float32))
     with torch.no_grad():
-        features = model(torch.unsqueeze(X.to(device),0)).cpu().numpy().flatten().tolist()
+        features = model(torch.unsqueeze(X.to(device),0)).sigmoid().cpu().numpy().flatten().tolist()
     return features
 
 
