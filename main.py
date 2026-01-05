@@ -24,6 +24,7 @@ from descriptors.ocr import ocr
 from descriptors.yolo_world_image import yolo_world_image
 from descriptors.image_cache_endpoint import image_cache_bp
 from descriptors.yolo_world_image_semantic import yolo_world_image_semantic_bp
+from descriptors.clip_influence.open_clip_influence import open_clip_influence_bp
 
 
 # specify here all modules, that will be needed for feature extraction server
@@ -38,6 +39,7 @@ def register_modules():
     app.register_blueprint(yolo_world_image)
     app.register_blueprint(yolo_world_image_semantic_bp)
     app.register_blueprint(image_cache_bp)
+    app.register_blueprint(open_clip_influence_bp)
 
 
 def entrypoint(host, port, args):

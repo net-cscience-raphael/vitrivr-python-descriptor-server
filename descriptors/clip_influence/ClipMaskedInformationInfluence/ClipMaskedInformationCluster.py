@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from PIL import Image
-
+from fractions import Fraction
 
 from .MaskingGenerator import  MaskingGenerator
 from .OpenClipScoringService import OpenClipScoringService
@@ -14,9 +14,9 @@ class ClipMaskedInformationCluster:
 
     def __init__(self, **kwargs):
         self.clip_service = OpenClipScoringService()
-        self.geometry_size = kwargs.get("geometry_size", (1 / 3, 1 / 3))  # relative to image size
-        self.step_size = kwargs.get("step_size", (1 / 3, 1 / 3))  # relative to image size
-        self.start_point = kwargs.get("start_point", (1 / 6, 1 / 6))  # pixel offset relative to image size
+        self.geometry_size = kwargs.get("geometry_size", (Fraction(1 / 3).limit_denominator(),Fraction(1 / 3).limit_denominator()))  # relative to image size
+        self.step_size = kwargs.get("step_size", (Fraction(1 / 3).limit_denominator(), Fraction(1 / 3).limit_denominator()))  # relative to image size
+        self.start_point = kwargs.get("start_point", (Fraction(1 / 6).limit_denominator(), Fraction(1 / 6).limit_denominator()))  # pixel offset relative to image size
         self.steps = kwargs.get("steps", (3, 3))  # number of steps in h,w
         self.mode = kwargs.get("mode", MaskingMode.KEEP_ONLY)
         self.geometry = SquareProvider(geometry_size=self.geometry_size)
@@ -25,12 +25,18 @@ class ClipMaskedInformationCluster:
             "geometry_size": self.geometry_size,
             "step_size": self.step_size,
             "start_point": self.start_point,
-            "steps": self.steps,
+            "tiling": self.steps,
+            "length": self.steps[0] * self.steps[1],
             "mode": self.mode,
             "geometry": type(self.geometry).__name__,
             "filter": type(self.filters).__name__,
             "clip_service": type(self.clip_service).__name__
         }
+
+    def embedd_text(self, text: str):
+        text_tokens = self.clip_service.tokenize(text)
+        txt_f = self.clip_service.clip_embedd_norm_txt_vectors(text_tokens)
+        return txt_f
 
     def imageTextPair(self, image: Image, text: str):
         text_tokens = self.clip_service.tokenize(text)
@@ -46,7 +52,8 @@ class ClipMaskedInformationCluster:
             "settings": self.settings,
             "processed_image_w": generator.image_w,
             "processed_image_h": generator.image_h,
-            "scores": scores,
+            "scores": scores.detach().cpu().numpy().tolist(),
+            "best_idx": int(torch.argmax(scores).item()),
             "point_hard": point_hard,
             "point_soft": point_soft,
         }
@@ -68,13 +75,17 @@ class ClipMaskedInformationCluster:
             "settings": self.settings,
             "processed_image_w": generator.image_w,
             "processed_image_h": generator.image_h,
-            "img_f_base": img_f_base,
-            "batch_img_f_masked": batch_img_f_masked
+            "img_f_base": img_f_base.detach().cpu().numpy().tolist(),
+            "batch_img_f_masked": batch_img_f_masked.detach().cpu().numpy().tolist(),
         }
         return response
 
-    def imageTextVectorPair(self, img_f_base: torch.Tensor, batch_img_f_masked: torch.Tensor, txt_f: torch.Tensor,
-                            processed_image_w, processed_image_h):
+    def imageTextVectorPair(self,
+                            img_f_base: torch.Tensor,
+                            batch_img_f_masked: torch.Tensor,
+                            txt_f: torch.Tensor,
+                            processed_image_w,
+                            processed_image_h):
         scores = self.clip_service.influence_calculator(img_f_base, batch_img_f_masked, txt_f, self.mode,
                                                         normalize=False)
         max_idx = np.argmax(scores.detach().cpu().numpy())
@@ -86,12 +97,19 @@ class ClipMaskedInformationCluster:
         point_soft = taget_point_soft(scores, dummy_generator)
         return scores, point_hard, point_soft
 
-    def imageTextVectorPair_response(self, img_f_base: torch.Tensor, batch_img_f_masked: torch.Tensor,
-                                     txt_f: torch.Tensor):
-        scores, point_hard, point_soft = self.imageTextVectorPair(img_f_base, batch_img_f_masked, txt_f)
+    def imageTextVectorPair_response(self,
+                                     img_f_base: torch.Tensor,
+                                     batch_img_f_masked: torch.Tensor,
+                                     txt_f: torch.Tensor,
+                                     processed_image_w,
+                                     processed_image_h):
+        scores, point_hard, point_soft = self.imageTextVectorPair(img_f_base, batch_img_f_masked, txt_f, processed_image_w, processed_image_h)
         response = {
             "settings": self.settings,
-            "scores": scores,
+            "processed_image_w": processed_image_w,
+            "processed_image_h": processed_image_h,
+            "scores": scores.detach().cpu().numpy().tolist(),
+            "best_idx": int(torch.argmax(scores).item()),
             "point_hard": point_hard,
             "point_soft": point_soft,
         }

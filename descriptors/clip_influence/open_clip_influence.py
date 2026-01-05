@@ -1,12 +1,13 @@
 import base64
-import json
+import json, ast
 from io import BytesIO
 
+import numpy as np
 import open_clip
 import torch
 from PIL import Image
 from apiflask import APIBlueprint
-from flask import request
+from flask import request, jsonify
 import gc
 
 from descriptors.clip_influence.ClipMaskedInformationInfluence.ClipMaskedInformationCluster import \
@@ -28,10 +29,10 @@ kwargs = {
 }
 cmi = ClipMaskedInformationCluster(**kwargs)
 
-@open_clip_influence_bp.post("/extract/clip_influence")
+@open_clip_influence_bp.post("/extract/clip_influence_image_text_scores")
 @open_clip_influence_bp.doc(
     summary="")
-def clip_influence_image_text():
+def clip_influence_image_text_scores():
     data = request.form.get('data-img', '')
     _, img_enc = data.split("base64,", 1)
     data = request.form.get('data-txt', '')
@@ -42,7 +43,26 @@ def clip_influence_image_text():
         text = base64.b64decode(txt_enc).decode("utf-8")
         image = Image.open(BytesIO(base64.b64decode(img_enc)))
 
-        response = cmi.imageTextVectorPair_response(image, text)
+        response = cmi.imageTextPair_response(image, text)
+
+    except Exception as e:
+        print(f"Error decoding image: {e}")
+        return "[]"
+
+    return response
+
+@open_clip_influence_bp.post("/extract/clip_influence_image_embedded")
+@open_clip_influence_bp.doc(
+    summary="")
+def clip_influence_image_embedded():
+    data = request.form.get('data-img', '')
+    _, img_enc = data.split("base64,", 1)
+
+    try:
+
+        image = Image.open(BytesIO(base64.b64decode(img_enc)))
+
+        response = cmi.imageVectors_response(image)
 
     except Exception as e:
         print(f"Error decoding image: {e}")
@@ -51,28 +71,43 @@ def clip_influence_image_text():
     return response
 
 
-@open_clip_influence_bp.post("/extract/clip_image_from_cache")
+@open_clip_influence_bp.post("/extract/clip_influence_img_f_text_scores")
 @open_clip_influence_bp.doc(
-    summary="CLIP endpoint for feature extraction on image, where the image is transmitted in the body by a data URL")
-def clip_image_from_cache():
-    image_id = str(request.form.get('image_id'))
+    summary="")
+def clip_influence_img_f_text_scores():
 
 
+    data = request.form.get('data-txt', '')
+    _, txt_enc = data.split("utf-8,", 1)
+
+    vec_field = request.form.get("data-vec-img", "")
+    prefix, payload  = vec_field.split(",", 1)
+    if prefix != "vector/float32;base64":
+        return jsonify(error="unsupported vector encoding"), 400
+
+    vec_field = request.form.get("data-vec-base", "")
+    prefix, payload2  = vec_field.split(",", 1)
+
+    if prefix != "vector/float32;base64":
+        return jsonify(error="unsupported vector encoding"), 400
+
+    raw = base64.b64decode(payload)
+    text = raw.decode("utf-8")
+    img_f = np.array(json.loads(''.join(text.split()))).astype(np.float32)
+
+    raw = base64.b64decode(payload2)
+    text = raw.decode("utf-8")
+    img_f_base = np.array(json.loads(''.join(text.split()))).astype(np.float32)
+
+    processed_image_w = request.form.get('image_w', 224)
+    processed_image_h = request.form.get('image_h', 224)
     try:
-        image =  image_cache.get(image_id)
+        img_f = torch.from_numpy(img_f).to(cmi.clip_service.device)
+        txt_f = cmi.embedd_text(text=base64.b64decode(txt_enc).decode("utf-8"))
+        response = cmi.imageTextVectorPair_response(img_f_base, img_f, txt_f, processed_image_w, processed_image_h)
+
     except Exception as e:
         print(f"Error decoding image: {e}")
         return "[]"
 
-    feature = "[]" if image is None else json.dumps(feature_image(image).tolist())
-    return feature
-
-
-
-def feature_image(image):
-    img = preprocess(image).unsqueeze(0).to(device)
-    with torch.no_grad():
-        image_features = model.encode_image(img)
-        image_features /= image_features.norm(dim=-1, keepdim=True)
-        gc.collect()
-        return image_features.cpu().numpy().flatten()
+    return response
