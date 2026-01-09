@@ -78,17 +78,19 @@ def clip_influence_img_f_text_scores():
 
 
     data = request.form.get('data-txt', '')
-    _, txt_enc = data.split("base64,", 1)
+    prefix, txt_enc = data.split(",", 1)
+    if prefix != "data:text/plain;charset=utf-8;base64":
+        return jsonify(error="unsupported text encoding"), 400
 
     vec_field = request.form.get("data-vec-img", "")
     prefix, payload  = vec_field.split(",", 1)
-    if prefix != "vector/float32;base64":
+    if prefix != "data:vector/float32;base64":
         return jsonify(error="unsupported vector encoding"), 400
 
     vec_field = request.form.get("data-vec-base", "")
     prefix, payload2  = vec_field.split(",", 1)
 
-    if prefix != "vector/float32;base64":
+    if prefix != "data:vector/float32;base64":
         return jsonify(error="unsupported vector encoding"), 400
 
     raw = base64.b64decode(payload)
