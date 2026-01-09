@@ -78,7 +78,7 @@ def clip_influence_img_f_text_scores():
 
 
     data = request.form.get('data-txt', '')
-    _, txt_enc = data.split("utf-8,", 1)
+    _, txt_enc = data.split("base64,", 1)
 
     vec_field = request.form.get("data-vec-img", "")
     prefix, payload  = vec_field.split(",", 1)
