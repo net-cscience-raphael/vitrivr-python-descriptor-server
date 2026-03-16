@@ -47,7 +47,7 @@ def show_overlay_any(image_pil_or_np, scores: torch.Tensor, generator: MaskingGe
         g.geometry_fnc(scores_tensor)[:, :] = val
 
         px, py = g.get_xy_pixel_point()
-        ax.text(px, py, f"{val:.2f}", ha="center", va="center", color="w")
+        ax.text(px, py, f"{val:.2f}\n{g.get_xy_tile_coordinates()}", ha="center", va="center", color="w")
 
     ax.imshow(img)
     #ax.imshow(scores_tensor[0].numpy(), alpha=alpha, cmap="magma", interpolation="nearest")

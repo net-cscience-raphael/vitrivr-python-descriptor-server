@@ -12,9 +12,9 @@ def main(args):
     # Load and preprocess image
     kwargs = {
         "geometry_size": (1 / 3, 1 / 3),  # relative to image size
-        "step_size": (1 / 3, 1 / 3),  # relative to image size
+        "step_size": (1 / 6, 1 / 6),  # relative to image size
         "start_point": (1 / 6, 1 / 6),  # pixel offset relative to image size
-        "steps": (3, 3),  # number of steps in h,w
+        "steps": (5, 5),  # number of steps in h,w (1, 1) means one tile
         "mode": MaskingMode.KEEP_ONLY
     }
     cmi = ClipMaskedInformationCluster(**kwargs)

@@ -25,6 +25,11 @@ class MaskingGenerator:
         self.batch_img_tensor = self.__initialize_batch(base_img_tensor)
 
 
+    def __getitem__(self, idx):
+        if idx < 0 or idx >= self.__len__():
+            raise IndexError("Index out of range")
+        self.idx = idx
+        return self
 
     def __iter__(self):
         self.idx = -1
@@ -58,7 +63,7 @@ class MaskingGenerator:
         else:
             raise ValueError(f"Unknown masking mode: {self.mode}")
 
-    def __get_xy_tile_coordinates(self) -> tuple[int, int]:
+    def get_xy_tile_coordinates(self) -> tuple[int, int]:
         y, x = divmod(self.idx, self.steps[1])
         return x, y
 
@@ -69,7 +74,7 @@ class MaskingGenerator:
         return self.steps[1], self.steps[0]
 
     def get_xy_pixel_point(self) -> tuple[int, int]:
-        tile_x, tile_y = self.__get_xy_tile_coordinates()
+        tile_x, tile_y = self.get_xy_tile_coordinates()
 
         point_x = round((self.start_point[1] + tile_x * self.step_size[1]) * self.image_w)
         point_y = round((self.start_point[0] + tile_y * self.step_size[0]) * self.image_h)
@@ -95,4 +100,4 @@ class MaskingGenerator:
             else:
                 raise ValueError(f"Unknown masking mode: {self.mode}")
 
-        return self.base_img_tensor, self.batch_img_tensor
+        return self.base_img_tensor, self.batch_img_tensor,
