@@ -72,7 +72,7 @@ class ClipMaskedInformationCluster:
     def imageVectors_response(self, image: Image):
         img_f_base, batch_img_f_masked, generator = self.imageVectors(image)
         batch = batch_img_f_masked.detach().cpu().numpy().tolist()
-        numberedBatch_img_f_masked =  [(f"batch_img_f_masked_{generator[i].get_xy_tile_coordinates()}", i, b)  for (b, i) in zip(batch, range(len(batch)))]
+        numberedBatch_img_f_masked =  [{"position": f"batch_img_f_masked_{generator[i].get_xy_tile_coordinates()}", "idx": i, "img_f":b}  for (b, i) in zip(batch, range(len(batch)))]
         response = {
             "settings": self.settings,
             "processed_image_w": generator.image_w,
